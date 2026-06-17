@@ -364,4 +364,8 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"restore_reply_context"];
 }
 
++ (BOOL)isAttestationBypassEnabled {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"attestation_bypass_enabled"];
+}
+
 @end

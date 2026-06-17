@@ -495,3 +495,6 @@
 
 "notif_Repost_old" = "Repost";
 "notif_Retweet_new" = "Retweet";
+
+"ATTESTATION_BYPASS_OPTION_TITLE" = "Bypass attestation";
+"ATTESTATION_BYPASS_OPTION_DETAIL_TITLE" = "Spoof device attestation. May or may not work for any feature.";

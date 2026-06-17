@@ -16,7 +16,7 @@ BHTwitter_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-nullability-comp
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 ifdef SIDELOADED
-SUBPROJECTS += libflex keychainfix
+SUBPROJECTS += libflex keychainfix zxPluginsInject
 else
 SUBPROJECTS += libflex
 endif

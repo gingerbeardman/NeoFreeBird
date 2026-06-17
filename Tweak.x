@@ -29,6 +29,16 @@
 
 @class T1SettingsViewController;
 
+@interface DCAppAttestService : NSObject
++ (instancetype)sharedService;
+- (BOOL)isSupported;
+@end
+
+@interface ASWebAuthenticationSession : NSObject
+- (instancetype)initWithURL:(NSURL *)URL callbackURLScheme:(NSString *)callbackURLScheme completionHandler:(void(^)(NSURL *, NSError *))completionHandler;
+@property(nonatomic) BOOL prefersEphemeralWebBrowserSession;
+@end
+
 // Forward declarations
 static void BHT_UpdateAllTabBarIcons(void);
 static void BHT_applyThemeToWindow(UIWindow *window);
@@ -3964,6 +3974,55 @@ static char kManualRefreshInProgressKey;
         // Mark that loading started (even though setLoading: might not be called with loading=1)
         objc_setAssociatedObject(self, &kPreviousLoadingStateKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
+}
+
+%end
+
+// MARK: - Bypass attestation
+// Spoof DCAppAttestService.isSupported as NO so Twitter falls back to a non-attested path,
+// avoiding key exchange failures on jailbroken/sideloaded devices.
+%hook DCAppAttestService
+
+- (BOOL)isSupported {
+    if ([BHTManager isAttestationBypassEnabled]) {
+        return NO;
+    }
+    return %orig;
+}
+
+%end
+
+// Strip attestation headers from Twitter/X requests so the server doesn't reject
+// the key exchange when the client cannot produce a valid attestation token.
+%hook NSMutableURLRequest
+
+- (void)setValue:(NSString *)value forHTTPHeaderField:(NSString *)field {
+    if ([BHTManager isAttestationBypassEnabled]) {
+        NSString *host = self.URL.host;
+        if (host && ([host containsString:@"twitter.com"] || [host containsString:@"x.com"])) {
+            if ([field isEqualToString:@"X-Twitter-Client-Attest"] || [field isEqualToString:@"X-Client-UUID"]) {
+                return;
+            }
+        }
+    }
+    %orig;
+}
+
+%end
+
+// Force ephemeral sessions so XChat's web-based auth flow doesn't share cookies with
+// a persistent browser session that might expose attestation state.
+%hook ASWebAuthenticationSession
+
+- (instancetype)initWithURL:(NSURL *)URL callbackURLScheme:(NSString *)callbackURLScheme completionHandler:(void(^)(NSURL *, NSError *))completionHandler {
+    id result = %orig;
+    if (result && [BHTManager isAttestationBypassEnabled]) {
+        __weak ASWebAuthenticationSession *weakSession = result;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            weakSession.prefersEphemeralWebBrowserSession = YES;
+        });
+    }
+    return result;
 }
 
 %end

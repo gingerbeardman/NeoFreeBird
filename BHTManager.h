@@ -83,4 +83,6 @@
 
 + (BOOL)restoreReplyContext;
 
++ (BOOL)isAttestationBypassEnabled;
+
 @end
