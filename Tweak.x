@@ -1836,6 +1836,24 @@ static void BHTApplyCopyButtonStyle(UIButton *copyButton, T1ProfileHeaderView *h
 }
 %end
 
+%hook TFNTwitterStatus
+- (BOOL)hasImageInterstitial {
+    return [BHTManager disableSensitiveTweetWarnings] ? false : %orig;
+}
+
+- (id)imageInterstitial {
+    return [BHTManager disableSensitiveTweetWarnings] ? nil : %orig;
+}
+
+- (id)innerImageInterstitial {
+    return [BHTManager disableSensitiveTweetWarnings] ? nil : %orig;
+}
+
+- (BOOL)isPossiblySensitiveViewModelForAccount:(id)account {
+    return [BHTManager disableSensitiveTweetWarnings] ? false : %orig;
+}
+%end
+
 // MARK: Tweet confirm
 %hook T1TweetComposeViewController
 - (void)_t1_didTapSendButton:(UIButton *)tweetButton {
