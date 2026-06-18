@@ -1472,7 +1472,12 @@ static NSArray *BHT_inlineActionViewClassesForViewModel(NSArray *classes, id vie
         [BHTManager DownloadingVideos] &&
         downloadButtonClass &&
         ![newClasses containsObject:downloadButtonClass]) {
-        [newClasses addObject:downloadButtonClass];
+        if (newClasses.count > 0) {
+            ((void (*)(Class, SEL, Class))objc_msgSend)(downloadButtonClass, @selector(setStyleButtonClass:), newClasses.lastObject);
+        }
+
+        NSUInteger downloadButtonIndex = newClasses.count > 1 ? newClasses.count - 1 : newClasses.count;
+        [newClasses insertObject:downloadButtonClass atIndex:downloadButtonIndex];
     }
 
     Class analyticsButtonClass = %c(TTAStatusInlineAnalyticsButton);

@@ -7,6 +7,7 @@
 //
 
 #import "BHDownloadInlineButton.h"
+#import <math.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import "Colours/Colours.h"
@@ -46,6 +47,102 @@ static NSUInteger BHSelectorArgumentCount(SEL selector) {
     return count;
 }
 
+static Class kBHStyleButtonClass;
+
+static Class BHStyleButtonClass(void) {
+    return kBHStyleButtonClass;
+}
+
+static BOOL BHStyleRespondsToSelector(id target, SEL selector) {
+    return target && [target respondsToSelector:selector];
+}
+
+static BOOL BHStyleBoolValue(id target, SEL selector, BOOL fallback) {
+    if (BHStyleRespondsToSelector(target, selector)) {
+        return ((BOOL (*)(id, SEL))objc_msgSend)(target, selector);
+    }
+
+    return fallback;
+}
+
+static double BHStyleDoubleValue(id target, SEL selector, double fallback) {
+    if (BHStyleRespondsToSelector(target, selector)) {
+        return ((double (*)(id, SEL))objc_msgSend)(target, selector);
+    }
+
+    return fallback;
+}
+
+static CGSize BHStyleSizeThatFits(id target, SEL selector, CGSize size, CGSize fallback) {
+    if (BHStyleRespondsToSelector(target, selector)) {
+        return ((CGSize (*)(id, SEL, CGSize))objc_msgSend)(target, selector, size);
+    }
+
+    return fallback;
+}
+
+static id BHStyleClassTarget(SEL selector) {
+    Class styleButtonClass = BHStyleButtonClass();
+    if ([styleButtonClass respondsToSelector:selector]) {
+        return styleButtonClass;
+    }
+
+    return nil;
+}
+
+static NSUInteger BHStyleUnsignedIntegerValue(id target, SEL selector, NSUInteger fallback) {
+    if (BHStyleRespondsToSelector(target, selector)) {
+        return ((NSUInteger (*)(id, SEL))objc_msgSend)(target, selector);
+    }
+
+    return fallback;
+}
+
+static id BHStyleButton(NSUInteger actionType, NSUInteger options, id overrideSize, id account) {
+    Class styleButtonClass = BHStyleButtonClass();
+    if (!styleButtonClass) {
+        return nil;
+    }
+
+    id button = nil;
+
+    @try {
+        SEL optionsInit = @selector(initWithOptions:overrideSize:account:);
+        if ([styleButtonClass instancesRespondToSelector:optionsInit]) {
+            button = ((id (*)(id, SEL, NSUInteger, id, id))objc_msgSend)([styleButtonClass alloc], optionsInit, options, overrideSize, account);
+        }
+
+        SEL inlineInit = @selector(initWithInlineActionType:options:overrideSize:account:);
+        if (!button && [styleButtonClass instancesRespondToSelector:inlineInit]) {
+            button = ((id (*)(id, SEL, NSUInteger, NSUInteger, id, id))objc_msgSend)([styleButtonClass alloc], inlineInit, actionType, options, overrideSize, account);
+        }
+    } @catch (__unused NSException *exception) {
+        button = nil;
+    }
+
+    return button;
+}
+
+static UIImageView *BHImageViewInView(UIView *view) {
+    if ([view isKindOfClass:UIImageView.class]) {
+        return (UIImageView *)view;
+    }
+
+    for (UIView *subview in view.subviews) {
+        UIImageView *imageView = BHImageViewInView(subview);
+        if (imageView) {
+            return imageView;
+        }
+    }
+
+    return nil;
+}
+
+static UIColor *BHTintColorInView(UIView *view) {
+    UIImageView *imageView = BHImageViewInView(view);
+    return imageView.tintColor ?: view.tintColor;
+}
+
 static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
     NSString *selectorName = NSStringFromSelector(selector);
     NSString *returnType = @"@";
@@ -83,6 +180,13 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
 #pragma mark - BHDownloadInlineButton
 @interface BHDownloadInlineButton () <BHDownloadDelegate>
 @property (nonatomic, strong) JGProgressHUD *hud;
+@property (nonatomic, assign) BOOL applyingCentreAdjustment;
+@property (nonatomic, assign) BOOL hasAdjustedCentreX;
+@property (nonatomic, assign) CGFloat adjustedCentreX;
+@property (nonatomic, assign) CGSize adjustedCentreBoundsSize;
+@property (nonatomic, weak) UIView *adjustedCentreSuperview;
+@property (nonatomic, assign) CGSize styleImageSize;
+@property (nonatomic, strong) id styleButton;
 @end
 
 @implementation BHDownloadInlineButton
@@ -96,6 +200,10 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
     return CGSizeZero; // let host lay the image out
 }
 
++ (void)setStyleButtonClass:(Class)styleButtonClass {
+    kBHStyleButtonClass = styleButtonClass;
+}
+
 #pragma mark ••• Status updates
 - (void)statusDidUpdate:(id)status
                 options:(NSUInteger)options
@@ -104,6 +212,14 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
         featureSwitches:(id)featureSwitches
 {
     _bh_callSuperIfPossible(self, _cmd, status, options, textOptions, animated, featureSwitches);
+
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        @try {
+            ((void (*)(id, SEL, id, NSUInteger, NSUInteger, BOOL, id))objc_msgSend)(self.styleButton, _cmd, status, options, textOptions, animated, featureSwitches);
+        } @catch (__unused NSException *exception) {
+        }
+    }
+
     [self _bh_applyTint];
 }
 
@@ -113,10 +229,26 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
                animated:(BOOL)animated
 {
     _bh_callSuperIfPossible(self, _cmd, status, options, textOptions, animated, nil);
+
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        @try {
+            ((void (*)(id, SEL, id, NSUInteger, NSUInteger, BOOL))objc_msgSend)(self.styleButton, _cmd, status, options, textOptions, animated);
+        } @catch (__unused NSException *exception) {
+        }
+    }
+
     [self _bh_applyTint];
 }
 
 - (void)_bh_applyTint {
+    if ([self.styleButton isKindOfClass:UIView.class]) {
+        UIColor *styleTintColor = BHTintColorInView((UIView *)self.styleButton);
+        if (styleTintColor) {
+            self.tintColor = styleTintColor;
+            return;
+        }
+    }
+
     id dlg = self.delegate.delegate;
     if ([dlg isKindOfClass:objc_getClass("T1SlideshowStatusView")] ||
         [dlg isKindOfClass:objc_getClass("T1ImmersiveExploreCardView")] ||
@@ -131,6 +263,7 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
 #pragma mark ••• Init
 - (instancetype)initWithOptions:(NSUInteger)options overrideSize:(id)overrideSize account:(id)account {
     if ((self = [super initWithFrame:CGRectZero])) {
+        self.styleButton = BHStyleButton(0, options, overrideSize, account);
         [self _bh_commonInitWithInlineType:131];
     }
     return self;
@@ -142,6 +275,7 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
                                  account:(id)account
 {
     if ((self = [super initWithFrame:CGRectZero])) {
+        self.styleButton = BHStyleButton(actionType, options, overrideSize, account);
         [self _bh_commonInitWithInlineType:actionType];
     }
     return self;
@@ -150,8 +284,206 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
 - (void)_bh_commonInitWithInlineType:(NSUInteger)type {
     self.inlineActionType = type;
     self.tintColor        = [UIColor colorFromHexString:@"6D6E70"];
+    self.imageView.contentMode = UIViewContentModeScaleAspectFit;
     [self setImage:[UIImage systemImageNamed:@"arrow.down"] forState:UIControlStateNormal];
     [self addTarget:self action:@selector(DownloadHandler:) forControlEvents:UIControlEventTouchUpInside];
+}
+
+- (void)_bh_applyStyleImageSize:(CGSize)imageSize {
+    if (CGSizeEqualToSize(imageSize, CGSizeZero) || CGSizeEqualToSize(imageSize, self.styleImageSize)) {
+        return;
+    }
+
+    self.styleImageSize = imageSize;
+    [self setNeedsLayout];
+
+    if (@available(iOS 13.0, *)) {
+        CGFloat pointSize = MIN(imageSize.width, imageSize.height);
+        UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPointSize:pointSize];
+        [self setPreferredSymbolConfiguration:configuration forImageInState:UIControlStateNormal];
+    }
+}
+
+- (void)_bh_updateStyleLayout {
+    if (![self.styleButton isKindOfClass:UIView.class] || CGRectIsEmpty(self.bounds)) {
+        return;
+    }
+
+    UIView *styleView = (UIView *)self.styleButton;
+
+    @try {
+        styleView.bounds = self.bounds;
+        styleView.frame = self.bounds;
+        [styleView setNeedsLayout];
+        [styleView layoutIfNeeded];
+
+        UIImageView *styleImageView = BHImageViewInView(styleView);
+        if (styleImageView && !CGSizeEqualToSize(styleImageView.bounds.size, CGSizeZero)) {
+            [self _bh_applyStyleImageSize:styleImageView.bounds.size];
+        }
+
+        UIColor *styleTintColor = BHTintColorInView(styleView);
+        if (styleTintColor) {
+            self.tintColor = styleTintColor;
+        }
+    } @catch (__unused NSException *exception) {
+    }
+}
+
+- (BOOL)_bh_adjustedCentreContextIsCurrent {
+    return self.hasAdjustedCentreX &&
+           self.adjustedCentreSuperview == self.superview &&
+           CGSizeEqualToSize(self.adjustedCentreBoundsSize, self.bounds.size);
+}
+
+- (void)_bh_applyAdjustedCentreX:(CGFloat)centreX {
+    if (fabs(self.center.x - centreX) < 0.5) {
+        return;
+    }
+
+    self.applyingCentreAdjustment = YES;
+    CGPoint centre = self.center;
+    centre.x = centreX;
+    self.center = centre;
+    self.applyingCentreAdjustment = NO;
+}
+
+- (void)_bh_restoreAdjustedCentreIfNeeded {
+    if (self.applyingCentreAdjustment || ![self _bh_adjustedCentreContextIsCurrent]) {
+        return;
+    }
+
+    [self _bh_applyAdjustedCentreX:self.adjustedCentreX];
+}
+
+- (void)_bh_centerBetweenSiblingButtons {
+    UIView *superview = self.superview;
+    if (!superview || self.hidden || CGRectIsEmpty(self.frame)) {
+        return;
+    }
+
+    NSMutableArray<UIView *> *siblings = [NSMutableArray array];
+    for (UIView *subview in superview.subviews) {
+        if (subview.hidden || subview.alpha == 0.0 || CGRectIsEmpty(subview.frame)) {
+            continue;
+        }
+
+        if ([subview isKindOfClass:UIControl.class] || [NSStringFromClass(subview.class) containsString:@"Button"]) {
+            [siblings addObject:subview];
+        }
+    }
+
+    if (siblings.count < 3 || ![siblings containsObject:self]) {
+        return;
+    }
+
+    [siblings sortUsingComparator:^NSComparisonResult(UIView *firstView, UIView *secondView) {
+        CGFloat firstMidX = CGRectGetMidX(firstView.frame);
+        CGFloat secondMidX = CGRectGetMidX(secondView.frame);
+
+        if (firstMidX < secondMidX) {
+            return NSOrderedAscending;
+        }
+
+        if (firstMidX > secondMidX) {
+            return NSOrderedDescending;
+        }
+
+        return NSOrderedSame;
+    }];
+
+    NSUInteger index = [siblings indexOfObject:self];
+    if (index == NSNotFound || index == 0 || index >= siblings.count - 1) {
+        return;
+    }
+
+    UIView *leadingView = siblings[index - 1];
+    UIView *trailingView = siblings[index + 1];
+    CGFloat targetX = (CGRectGetMidX(leadingView.frame) + CGRectGetMidX(trailingView.frame)) / 2.0;
+
+    self.hasAdjustedCentreX = YES;
+    self.adjustedCentreX = targetX;
+    self.adjustedCentreBoundsSize = self.bounds.size;
+    self.adjustedCentreSuperview = superview;
+    [self _bh_applyAdjustedCentreX:targetX];
+}
+
+- (void)layoutSubviews {
+    [self _bh_updateStyleLayout];
+    [super layoutSubviews];
+    [self _bh_centerBetweenSiblingButtons];
+}
+
+- (void)setCenter:(CGPoint)center {
+    [super setCenter:center];
+    [self _bh_restoreAdjustedCentreIfNeeded];
+}
+
+- (void)setFrame:(CGRect)frame {
+    [super setFrame:frame];
+    [self _bh_restoreAdjustedCentreIfNeeded];
+}
+
+- (CGRect)imageRectForContentRect:(CGRect)contentRect {
+    if (!CGSizeEqualToSize(self.styleImageSize, CGSizeZero)) {
+        CGSize imageSize = self.styleImageSize;
+        return CGRectMake(CGRectGetMidX(contentRect) - imageSize.width / 2.0,
+                          CGRectGetMidY(contentRect) - imageSize.height / 2.0,
+                          imageSize.width,
+                          imageSize.height);
+    }
+
+    return [super imageRectForContentRect:contentRect];
+}
+
+- (CGSize)intrinsicContentSize {
+    return BHStyleRespondsToSelector(self.styleButton, _cmd) ? ((CGSize (*)(id, SEL))objc_msgSend)(self.styleButton, _cmd) : [super intrinsicContentSize];
+}
+
+- (CGSize)sizeThatFits:(CGSize)size {
+    return BHStyleSizeThatFits(self.styleButton, _cmd, size, [super sizeThatFits:size]);
+}
+
+#pragma mark ••• Inline‑action metrics
+- (double)extraWidth { return BHStyleDoubleValue(self.styleButton, _cmd, 0.0); }
++ (double)extraWidth { return BHStyleDoubleValue(BHStyleClassTarget(_cmd), _cmd, 0.0); }
+
+- (BOOL)shouldShowCount { return NO; }
++ (BOOL)shouldShowCount { return NO; }
+
+- (NSUInteger)visibility { return 1; }
++ (NSUInteger)visibility { return 1; }
+
+- (void)setButtonAnimator:(id)buttonAnimator {
+    _buttonAnimator = buttonAnimator;
+
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        ((void (*)(id, SEL, id))objc_msgSend)(self.styleButton, _cmd, buttonAnimator);
+    }
+}
+
+- (void)setDelegate:(T1StatusInlineActionsView *)delegate {
+    _delegate = delegate;
+
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        ((void (*)(id, SEL, id))objc_msgSend)(self.styleButton, _cmd, delegate);
+    }
+}
+
+- (void)setDisplayType:(NSUInteger)displayType {
+    _displayType = displayType;
+
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        ((void (*)(id, SEL, NSUInteger))objc_msgSend)(self.styleButton, _cmd, displayType);
+    }
+}
+
+- (void)setViewModel:(id)viewModel {
+    _viewModel = viewModel;
+
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        ((void (*)(id, SEL, id))objc_msgSend)(self.styleButton, _cmd, viewModel);
+    }
 }
 
 // Twitter asks subclasses (+ class) for a custom glyph via this selector.
@@ -176,8 +508,11 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
 
 #pragma mark ••• Hit‑testing tweaks
 - (void)setTouchInsets:(UIEdgeInsets)insets {
+    if (BHStyleRespondsToSelector(self.styleButton, _cmd)) {
+        ((void (*)(id, SEL, UIEdgeInsets))objc_msgSend)(self.styleButton, _cmd, insets);
+    }
+
     if ([self.delegate.delegate isKindOfClass:objc_getClass("T1StandardStatusInlineActionsViewAdapter")]) {
-        self.imageEdgeInsets = insets;
         [self setHitTestEdgeInsets:insets];
     }
 }
@@ -200,22 +535,6 @@ static NSString *BHMethodTypeEncodingForSelector(SEL selector) {
     }
     return CGRectContainsPoint(UIEdgeInsetsInsetRect(self.bounds, self.hitTestEdgeInsets), pt);
 }
-
-#pragma mark ••• Inline‑action metrics (instance + class)
-#define BH_METRIC(name, value) \
-    - (typeof(value))name { return value; } \
-    + (typeof(value))name { return value; }
-
-BH_METRIC(extraWidth,                 40.0)
-BH_METRIC(extraWidthWithStyle,        40.0)
-BH_METRIC(trailingEdgeInset,          6.0)
-BH_METRIC(visibility,                 (NSUInteger)1)
-BH_METRIC(alternateInlineActionType,  (NSUInteger)6)
-BH_METRIC(touchInsetPriority,         (NSUInteger)2)
-BH_METRIC(shouldShowCount,            NO)
-BH_METRIC(displayType,                (NSUInteger)0)
-
-#undef BH_METRIC
 
 #pragma mark ••• Download handler
 - (void)DownloadHandler:(UIButton *)sender {
