@@ -1825,13 +1825,13 @@ static NSNumber *BHTFeatureSwitchOverrideValueForKey(NSString *key) {
     }
 
     // Custom timelines overrides
-    if ([key isEqualToString:@"ranked_following_home_timeline_tab_enabled"] ||
-        [key isEqualToString:@"hometimeline_pinned_tabs_topics_enabled"] ||
+    BOOL hideCustomTimelines = [BHTManager hideCustomTimelines];
+    if ([key isEqualToString:@"hometimeline_pinned_tabs_topics_enabled"] ||
         [key isEqualToString:@"hometimeline_pinned_tabs_generic_timelines_enabled"] ||
         [key isEqualToString:@"hometimeline_pinned_tabs_sticky_warm_start_enabled"] ||
         [key isEqualToString:@"home_timeline_sticky_pinned_tab_enabled"] ||
         [key isEqualToString:@"super_follow_subscriptions_home_timeline_tab_sticky_enabled"]) {
-        return @YES;
+        return hideCustomTimelines ? @NO : @YES;
     }
 
     if ([key isEqualToString:@"home_timeline_non_sticky_tab_on_new_session_enabled"]) {
@@ -1841,7 +1841,7 @@ static NSNumber *BHTFeatureSwitchOverrideValueForKey(NSString *key) {
     if ([key isEqualToString:@"hometimeline_pinned_tabs_limit"] ||
         [key isEqualToString:@"hometimeline_pinned_tabs_management_pinnedsection_inline_limit"] ||
         [key isEqualToString:@"hometimeline_pinned_tabs_management_topics_inline_limit"]) {
-        return @100;
+        return hideCustomTimelines ? @0 : @100;
     }
 
     // Edit tweet
@@ -2107,6 +2107,102 @@ static NSNumber *BHTFeatureSwitchOverrideValueForKey(NSString *key) {
     }
 
     return %orig;
+}
+%end
+
+static NSTimeInterval BHTPinnedTabsLaunchUptime = 0;
+
+static id BHTPinnedTabsPersistenceCoordinator(void) {
+    static id coordinator = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        coordinator = [NSObject new];
+    });
+    return coordinator;
+}
+
+static NSArray *BHTPinnedTimelinesSnapshot(id repository) {
+    if (!repository || ![repository respondsToSelector:@selector(pinnedTimelines)]) {
+        return nil;
+    }
+    id value = ((id (*)(id, SEL))objc_msgSend)(repository, @selector(pinnedTimelines));
+    return [value isKindOfClass:[NSArray class]] ? value : nil;
+}
+
+static void BHTRecordPinnedTimelineUnpin(void) {
+    @synchronized (BHTPinnedTabsPersistenceCoordinator()) {
+        [[NSUserDefaults standardUserDefaults] setDouble:CFAbsoluteTimeGetCurrent() forKey:@"BHTCustomTimelinesUnpinTime"];
+    }
+}
+
+%hook _TtC32TwitterHomeFeatureImplementation31CachedPinnedTimelinesRepository
+- (void)unpinTimelineWithTimeline:(id)timeline completion:(id)completion {
+    BHTRecordPinnedTimelineUnpin();
+    %orig;
+}
+
+- (void)unpinTimelineWithTimelineInput:(id)input completion:(id)completion {
+    BHTRecordPinnedTimelineUnpin();
+    %orig;
+}
+
+- (void)updatePinnedTimelines:(id)timelines {
+    if ([BHTManager hideCustomTimelines]) {
+        %orig;
+        return;
+    }
+
+    BOOL block = NO;
+    @synchronized (BHTPinnedTabsPersistenceCoordinator()) {
+        BOOL isArray = [timelines isKindOfClass:[NSArray class]];
+        NSUInteger incomingCount = isArray ? [timelines count] : 0;
+        NSTimeInterval now = CFAbsoluteTimeGetCurrent();
+        NSTimeInterval lastUnpin = [[NSUserDefaults standardUserDefaults] doubleForKey:@"BHTCustomTimelinesUnpinTime"];
+
+        if ((now - lastUnpin < 120.0) || (isArray && incomingCount != 0)) {
+            block = NO;
+        } else {
+            NSArray *snapshot = BHTPinnedTimelinesSnapshot(self);
+            if (snapshot.count == 0) {
+                block = NO;
+            } else {
+                NSTimeInterval uptime = [[NSProcessInfo processInfo] systemUptime];
+                BOOL withinStartupWindow = (BHTPinnedTabsLaunchUptime > 0) && ((uptime - BHTPinnedTabsLaunchUptime) < 20.0);
+                block = withinStartupWindow;
+            }
+        }
+    }
+
+    if (!block) {
+        %orig;
+    }
+}
+%end
+
+static void BHTHideHomeAddTabButton(id container) {
+    if (![BHTManager hideCustomTimelines]) {
+        return;
+    }
+    @try {
+        id button = [container valueForKey:@"addTabButton"];
+        if ([button isKindOfClass:[UIView class]]) {
+            ((UIView *)button).hidden = YES;
+        }
+    } @catch (__unused NSException *exception) {
+
+		}
+}
+
+%hook _TtC32TwitterHomeFeatureImplementation35HomeTimelineContainerViewController
+- (id)tfn_navigationBarAccessoryView {
+    id accessory = %orig;
+    BHTHideHomeAddTabButton(self);
+    return accessory;
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    BHTHideHomeAddTabButton(self);
 }
 %end
 
@@ -4486,6 +4582,8 @@ static char kManualRefreshInProgressKey;
 %end
 
 %ctor {
+    BHTPinnedTabsLaunchUptime = [[NSProcessInfo processInfo] systemUptime];
+
     // Import AudioServices framework
     dlopen("/System/Library/Frameworks/AudioToolbox.framework/AudioToolbox", RTLD_LAZY);
 
