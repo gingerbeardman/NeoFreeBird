@@ -476,6 +476,8 @@ PSSpecifier *photosVideosSection = [self newSectionWithTitle:[[BHTBundle sharedB
 
         PSSpecifier *stopHidingTabBar = [self newSwitchCellWithTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"STOP_HIDING_TAB_BAR_TITLE"] detailTitle:@"Keeps the tab bar visible and prevents fading" key:@"no_tab_bar_hiding" defaultValue:false changeAction:nil];
 
+        PSSpecifier *hideCustomTimelines = [self newSwitchCellWithTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"HIDE_CUSTOM_TIMELINES_OPTION_TITLE"] detailTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"HIDE_CUSTOM_TIMELINES_OPTION_DETAIL_TITLE"] key:@"hide_custom_timelines" defaultValue:false changeAction:nil];
+
         PSSpecifier *dmAvatars = [self newSwitchCellWithTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"DM_AVATARS_TITLE"] detailTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"DM_AVATARS_DETAIL_TITLE"] key:@"dm_avatars" defaultValue:false changeAction:nil];
 
         PSSpecifier *dmComposeBarV2 = [self newSwitchCellWithTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"DM_COMPOSE_BAR_V2_TITLE"]
@@ -649,6 +651,7 @@ PSSpecifier *photosVideosSection = [self newSectionWithTitle:[[BHTBundle sharedB
 
             layoutSection, // 7
             hideSpace,
+            hideCustomTimelines,
             stopHidingTabBar,
             tabBarTheming,
             restoreTabLabels,

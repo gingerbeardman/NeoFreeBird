@@ -747,7 +747,7 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
         @{ @"title": @"Thea 🐾", @"username": @"nyaathea", @"avatarURL": @"https://unavatar.io/github/nyathea?fallback=https://neofreebird.com/images/theameoww.png", @"userID": @"1541742676009226241" },
         @{ @"title": @"timi2506", @"username": @"timi2506", @"avatarURL": @"https://unavatar.io/github/timi2506?fallback=https://neofreebird.com/images/timi2506.png", @"userID": @"1684856685486063616" }
     ];
-    
+
     self.coolKidsCells = @[
         @{ @"title": @"Eevee", @"username": @"whoeevee1", @"avatarURL": @"https://unavatar.io/github/whoeevee?fallback=https://neofreebird.com/images/whoeevee.png", @"userID": @"1547956497342115844" },
         @{ @"title": @"zxcvbn", @"username": @"zxxvbn0", @"avatarURL": @"https://unavatar.io/x/zxxvbn0?fallback=https://neofreebird.com/images/zxxvbn0.png", @"userID": @"1678444396717514760" }
@@ -1528,7 +1528,7 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
     [alert addAction:[UIAlertAction actionWithTitle:[[BHTBundle sharedBundle] localizedStringForKey:@"RESTART_NOW_BUTTON_TITLE"] style:UIAlertActionStyleDestructive handler:^(UIAlertAction * _Nonnull action) {exit(0);}]];
     [self presentViewController:alert animated:YES completion:nil];
 }
-    
+
 
 @end
 
@@ -2403,7 +2403,7 @@ if ([type isEqualToString:@"compactButton"]) {
 }
 
 - (void)buildSettingsList {
-    self.toggles = @[ @{ @"key": @"flex_twitter", @"titleKey": @"FLEX_OPTION_TITLE", @"subtitleKey": @"FLEX_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle" } 
+    self.toggles = @[ @{ @"key": @"flex_twitter", @"titleKey": @"FLEX_OPTION_TITLE", @"subtitleKey": @"FLEX_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle" }
     ];
     [self updateVisibleToggles];
     [self.tableView reloadData];
@@ -2680,6 +2680,7 @@ if ([type isEqualToString:@"compactButton"]) {
         @{ @"key": @"no_his", @"titleKey": @"NO_HISTORY_OPTION_TITLE", @"subtitleKey": @"NO_HISTORY_OPTION_DETAIL_TITLE", @"default": @NO },
         @{ @"key": @"hide_trend_videos", @"titleKey": @"HIDE_TREND_VIDEOS_OPTION_TITLE", @"subtitleKey": @"HIDE_TREND_VIDEOS_OPTION_DETAIL_TITLE", @"default": @NO },
         @{ @"key": @"hide_spaces", @"titleKey": @"HIDE_SPACE_OPTION_TITLE", @"subtitleKey": @"", @"default": @NO },
+        @{ @"key": @"hide_custom_timelines", @"titleKey": @"HIDE_CUSTOM_TIMELINES_OPTION_TITLE", @"subtitleKey": @"HIDE_CUSTOM_TIMELINES_OPTION_DETAIL_TITLE", @"default": @NO },
         @{ @"key": @"no_tab_bar_hiding", @"titleKey": @"STOP_HIDING_TAB_BAR_TITLE", @"subtitleKey": @"STOP_HIDING_TAB_BAR_DETAIL_TITLE", @"default": @YES },
         @{ @"key": @"tab_bar_theming", @"titleKey": @"CLASSIC_TAB_BAR_SETTINGS_TITLE", @"subtitleKey": @"CLASSIC_TAB_BAR_SETTINGS_DETAIL", @"default": @NO },
         @{ @"key": @"restore_tab_labels", @"titleKey": @"RESTORE_TAB_LABELS_TITLE", @"subtitleKey": @"RESTORE_TAB_LABELS_DETAIL", @"default": @NO },

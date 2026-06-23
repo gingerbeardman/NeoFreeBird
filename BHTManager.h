@@ -61,6 +61,7 @@
 + (BOOL)RestoreTweetLabels;
 + (BOOL)disableMediaTab;
 + (BOOL)disableArticles;
++ (BOOL)hideCustomTimelines;
 + (BOOL)disableHighlights;
 
 + (BOOL)hideGrokAnalyze;

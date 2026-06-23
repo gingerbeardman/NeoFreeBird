@@ -263,6 +263,9 @@
 "STOP_HIDING_TAB_BAR_TITLE" = "Keep the navigation bar visible";
 "STOP_HIDING_TAB_BAR_DETAIL_TITLE" = "Don't fade the navigation bar when you scroll.";
 
+"HIDE_CUSTOM_TIMELINES_OPTION_TITLE" = "Hide custom timelines";
+"HIDE_CUSTOM_TIMELINES_OPTION_DETAIL_TITLE" = "Remove the Add button from the home timeline tabs. Required relaunching.";
+
 "CLASSIC_TAB_BAR_SETTINGS_TITLE" = "Classic tab bar";
 "CLASSIC_TAB_BAR_SETTINGS_DETAIL" = "Applies your accent color to the currently selected tab item.";
 
