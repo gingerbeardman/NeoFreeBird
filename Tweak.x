@@ -20,6 +20,7 @@
 #import "BHDimPalette.h"
 #import <math.h>
 #import "BHTBundle/BHTBundle.h"
+#import "LegacyLogin/BHTLegacyLoginViewController.h"
 #import "TWHeaders.h"
 #import "SAMKeychain/SAMKeychain.h"
 #import "CustomTabBar/BHCustomTabBarUtility.h"
@@ -1888,6 +1889,17 @@ static NSNumber *BHTFeatureSwitchOverrideValueForKey(NSString *key) {
         }
     }
 
+    // Restore classic OCF login (bypass broken Jetfuel/attestation onboarding)
+    if ([key isEqualToString:@"onboarding_new_fallback"]) {
+        return @YES;
+    }
+
+    if ([key isEqualToString:@"onboarding_new_keychain_login_enabled"] ||
+        [key isEqualToString:@"onboarding_new_login_with_recent_account_enabled"] ||
+        [key isEqualToString:@"onboarding_new_add_existing_account_enabled"]) {
+        return @NO;
+    }
+
     // Conversation / tweet detail
     if ([key isEqualToString:@"conversational_replies_ios_minimal_detail_enabled"]) {
         return @(![BHTManager OldStyle]);
@@ -2111,6 +2123,21 @@ static NSNumber *BHTFeatureSwitchOverrideValueForKey(NSString *key) {
     return %orig;
 }
 %end
+
+// MARK: Override the login screens
+%hook T1AccountsViewController
+- (void)private_startLoginFlowWithSender:(id)sender {
+    [BHTLegacyLoginViewController presentLoginFrom:(UIViewController *)self];
+}
+%end
+
+%hook T1HostViewController
+- (void)makeOnboardingViewControllerWithOCFFallback:(id)fallback completion:(void (^)(id))completion {
+    if (completion == nil) { %orig; return; }
+    completion([BHTLegacyLoginViewController loginRootNavigationController]);
+}
+%end
+
 
 static NSTimeInterval BHTPinnedTabsLaunchUptime = 0;
 
