@@ -498,6 +498,7 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"hide_topics_to_follow"];
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"hide_who_to_follow"];
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"no_tab_bar_hiding"];
+				[[NSUserDefaults standardUserDefaults] setBool:true forKey:@"attestation_bypass_enabled"];
 				[[NSUserDefaults standardUserDefaults] setBool:true forKey:@"reply_in_webview"];
 
     }

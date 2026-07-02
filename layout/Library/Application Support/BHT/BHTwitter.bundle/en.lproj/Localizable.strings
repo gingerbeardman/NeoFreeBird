@@ -502,8 +502,8 @@
 "notif_Repost_old" = "Repost";
 "notif_Retweet_new" = "Retweet";
 
-"ATTESTATION_BYPASS_OPTION_TITLE" = "Bypass attestation";
-"ATTESTATION_BYPASS_OPTION_DETAIL_TITLE" = "Spoof device attestation. May or may not work for any feature.";
+"ATTESTATION_BYPASS_OPTION_TITLE" = "Strip attestation headers";
+"ATTESTATION_BYPASS_OPTION_DETAIL_TITLE" = "May or may not impact any feature.";
 
 "REPLY_IN_WEBVIEW_OPTION_TITLE" = "Reply in web view";
 "REPLY_IN_WEBVIEW_OPTION_DETAIL_TITLE" = "Open the reply box in a web view to avoid attestation.";
