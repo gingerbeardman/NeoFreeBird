@@ -2413,6 +2413,12 @@ static void BHTHideHomeAddTabButton(id container) {
 }
 %end
 
+%hook HFHealthSafetyFeature
++ (BOOL)isTweetMedialInterstitialEnabled:(id)featureSwitches {
+    return [BHTManager disableSensitiveTweetWarnings] ? false : %orig;
+}
+%end
+
 // MARK: Tweet confirm
 %hook T1TweetComposeViewController
 - (void)_t1_didTapSendButton:(UIButton *)tweetButton {
