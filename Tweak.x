@@ -1551,6 +1551,25 @@ static T1StatusCell *BHT_tweetViewFromInlineActionsView(TTAStatusInlineActionsVi
 }
 %end
 
+%hook T1PersistentComposeViewController
+- (void)persistentComposeViewDidTap:(id)composeView {
+    if (![BHTManager replyInWebView]) {
+        return %orig;
+    }
+
+    TFNTwitterStatus *status = BHT_statusFromObject(self.statusViewModel);
+    NSInteger statusID = status.statusID;
+    if (statusID <= 0) {
+        return %orig;
+    }
+
+    NSString *statusIDString = @(statusID).stringValue;
+    if (!BHT_openAuthenticatedTweetWebView(statusIDString)) {
+        return %orig;
+    }
+}
+%end
+
 %hook T1WebViewController
 - (BOOL)doesURLResultTypeOpenInWebview:(long long)resultType {
     if (objc_getAssociatedObject(self, BHTKeepReplyInWebViewKey)) {

@@ -252,6 +252,10 @@ static NSString *_lastCopiedURL;
 @property(nonatomic) __weak id <T1StatusInlineActionButtonDelegate> delegate;
 @end
 
+@interface T1PersistentComposeViewController : UIViewController
+@property(readonly, nonatomic) id statusViewModel;
+@end
+
 @protocol TTACoreStatusViewEventHandler <NSObject>
 @end
 
