@@ -1708,7 +1708,10 @@ static T1StatusCell *BHT_tweetViewFromInlineActionsView(TTAStatusInlineActionsVi
             }
 
             UIImage *tweetImage = BH_imageFromView(tweetView);
-            UIActivityViewController *acVC = [[UIActivityViewController alloc] initWithActivityItems:@[tweetImage] applicationActivities:nil];
+            NSData *pngData = UIImagePNGRepresentation(tweetImage);
+            NSURL *pngURL = [[NSURL fileURLWithPath:NSTemporaryDirectory()] URLByAppendingPathComponent:[NSString stringWithFormat:@"%@.png", [[NSUUID UUID] UUIDString]]];
+            [pngData writeToURL:pngURL atomically:YES];
+            UIActivityViewController *acVC = [[UIActivityViewController alloc] initWithActivityItems:@[pngURL] applicationActivities:nil];
             if (is_iPad()) {
                 acVC.popoverPresentationController.sourceView = self;
                 acVC.popoverPresentationController.sourceRect = self.frame;
