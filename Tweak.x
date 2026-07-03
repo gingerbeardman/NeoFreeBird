@@ -633,8 +633,10 @@ static void batchSwizzlingOnClass(Class cls, NSArray<NSString*>*origSelectors, I
 - (void)loadView {
     %orig;
     NSArray <NSString *> *hiddenBars = [BHCustomTabBarUtility getHiddenTabBars];
+    BOOL hideGrokByDefault = ![[NSUserDefaults standardUserDefaults] boolForKey:@"ios_tab_bar_default_show_grok"];
     for (T1TabView *tabView in self.tabViews) {
-        if ([hiddenBars containsObject:tabView.scribePage]) {
+        if ([hiddenBars containsObject:tabView.scribePage] ||
+            (hideGrokByDefault && [tabView.scribePage isEqualToString:@"grok"])) {
             [tabView setHidden:true];
         }
     }
