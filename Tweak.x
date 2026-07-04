@@ -3995,7 +3995,12 @@ static NSArray *BHTRemoveGrokBarButtonItems(NSArray *items) {
     NSMutableArray *filtered = nil;
     for (UIBarButtonItem *item in items) {
         NSString *label = [item.accessibilityLabel lowercaseString];
-        if ([label rangeOfString:@"grok"].location != NSNotFound) {
+        // NOTE: [nil rangeOfString:@"grok"].location is 0 (a zeroed NSRange from
+        // messaging nil), which is != NSNotFound — so a nil/absent label would
+        // FALSELY match and the item would be removed. The composer's "Post"
+        // button has no accessibility label, so this deleted it and made posting
+        // impossible (NeoFreeBird#2). Require a real label before matching.
+        if (label != nil && [label rangeOfString:@"grok"].location != NSNotFound) {
             if (!filtered) filtered = [items mutableCopy];
             [filtered removeObject:item];
         }
@@ -4038,22 +4043,38 @@ static NSArray *BHTRemoveGrokBarButtonItems(NSArray *items) {
 
 %end
 
+// Positive Grok identification by MENU CONTENTS. The nav-bar "Analyse with Grok"
+// button is a TFNButton with a nil title and an anonymous (unnamed) template image,
+// so there's no title/label/image to match on — but its primary-action menu holds
+// Grok items ("Analyse with Grok", "Open in Grok"). Matching the menu (not the old
+// "unlabelled + has menu" heuristic) hides ONLY the Grok button; the composer's Post
+// button also has a menu, but it never mentions Grok, so it's never touched.
+static BOOL BHTMenuMentionsGrok(id menu) {
+    if (![menu isKindOfClass:[UIMenu class]]) return NO;
+    for (UIMenuElement *el in [(UIMenu *)menu children]) {
+        NSString *title = el.title;
+        if (title.length && [title rangeOfString:@"Grok" options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            return YES;
+        }
+        if ([el isKindOfClass:[UIMenu class]] && BHTMenuMentionsGrok(el)) return YES;
+    }
+    return NO;
+}
+
 %hook TFNButton
 
 - (void)didMoveToWindow {
     %orig;
-    UIButton *button = (UIButton *)self;
-    if (!button.window || ![BHTManager hideGrokAnalyze]) return;
-    @try {
-        if (button.accessibilityLabel.length != 0 || !button.showsMenuAsPrimaryAction) return;
-        for (UIView *ancestor = button.superview; ancestor; ancestor = ancestor.superview) {
-            if ([ancestor isKindOfClass:NSClassFromString(@"TFNNavigationBar")]) {
-                button.hidden = YES;
-                break;
-            }
-        }
-    } @catch (NSException *exception) {
-        NSLog(@"[BHTwitter] Exception in TFNButton didMoveToWindow: %@", exception);
+    if (self.window && [BHTManager hideGrokAnalyze] && BHTMenuMentionsGrok(((UIButton *)self).menu)) {
+        ((UIView *)self).hidden = YES;
+    }
+}
+
+- (void)setMenu:(UIMenu *)menu {
+    %orig(menu);
+    // Catches the case where the Grok menu is attached after the button is in-window.
+    if ([BHTManager hideGrokAnalyze] && BHTMenuMentionsGrok(menu)) {
+        ((UIView *)self).hidden = YES;
     }
 }
 
@@ -4160,13 +4181,10 @@ static BOOL findAndHideButtonWithAccessibilityId(UIView *viewToSearch, NSString 
     }
 }
 
-// This hook makes the control ALWAYS REPORT its variant as 32
-- (NSUInteger)variant {
-    if ([BHTManager restoreFollowButton]) {
-        return 32;
-    }
-    return %orig;
-}
+// NOTE: We intentionally do NOT override -variant. Forcing it to a constant 32
+// made every TUIFollowControl report "Follow" regardless of the real account
+// relationship, which hid the Follow button on every tweet (NeoFreeBird#2).
+// The setVariant: remap above already converts Subscribe (1) -> Follow (32).
 
 %end
 
@@ -5419,13 +5437,24 @@ static BOOL BHPillLabelOverrideEnabled(void) {
     return [defaults boolForKey:@"refresh_pill_label"];
 }
 
+// Only the "new posts/Tweets" refresh pill should be relabelled. TFNPillControl
+// is used for other pills too ("Back to top", counts, …); the old code forced
+// every pill's text to "Tweeted" and corrupted their reads. Gate on the pill's
+// own text mentioning posts/tweets.
+static BOOL BHPillTextIsNewContent(id text) {
+    if (![text isKindOfClass:[NSString class]]) return NO;
+    NSString *s = [(NSString *)text lowercaseString];
+    return [s containsString:@"post"] || [s containsString:@"tweet"];
+}
+
 // MARK: Change Pill text, controlled by "refresh_pill_label"
 %hook TFNPillControl
 
 - (id)text {
-    if (!BHPillLabelOverrideEnabled()) {
-        // Setting is off, keep original behavior
-        return %orig;
+    id origText = %orig;
+    if (!BHPillLabelOverrideEnabled() || !BHPillTextIsNewContent(origText)) {
+        // Setting off, or not the new-content pill: keep original behavior
+        return origText;
     }
 
     NSString *localizedText = [[BHTBundle sharedBundle] localizedStringForKey:@"REFRESH_PILL_TEXT"];
@@ -5434,8 +5463,8 @@ static BOOL BHPillLabelOverrideEnabled(void) {
 }
 
 - (void)setText:(id)arg1 {
-    if (!BHPillLabelOverrideEnabled()) {
-        // Setting is off, pass through original argument
+    if (!BHPillLabelOverrideEnabled() || !BHPillTextIsNewContent(arg1)) {
+        // Setting off, or not the new-content pill: pass through original argument
         return %orig(arg1);
     }
 

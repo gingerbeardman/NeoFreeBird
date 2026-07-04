@@ -182,7 +182,10 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_topics"];
 }
 + (BOOL)DisableVODCaptions {
-    return [[NSUserDefaults standardUserDefaults] boolForKey:@"dis_VODCaptions"];
+    // The settings toggle ("No video captions") writes @"video_layer_caption";
+    // this used to read an unexposed @"dis_VODCaptions" key, so the switch did
+    // nothing. Read the key the UI actually sets.
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"video_layer_caption"];
 }
 + (BOOL)UndoTweet {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"undo_tweet"];
@@ -248,7 +251,7 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_view_count"];
 }
 + (BOOL)hidePremiumOffer {
-    return YES;
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_premium_offer"];
 }
 + (BOOL)hideTrendVideos {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_trend_videos"];
