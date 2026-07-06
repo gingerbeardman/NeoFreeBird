@@ -72,6 +72,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Скрыть закладки";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Убрать кнопку закладки с твитов.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Скрыть дизлайки";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Убрать кнопку дизлайка с твитов.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Без предупреждений о чувствительном контенте";
 

@@ -1792,6 +1792,13 @@ static NSArray *BHT_inlineActionViewClassesForViewModel(NSArray *classes, id vie
         [newClasses removeObject:bookmarkButtonClass];
     }
 
+    Class downvoteButtonClass = %c(TTAStatusInlineDownvoteButton);
+    if (downvoteButtonClass &&
+        [newClasses containsObject:downvoteButtonClass] &&
+        [BHTManager hideDownvoteButton]) {
+        [newClasses removeObject:downvoteButtonClass];
+    }
+
     return [newClasses copy];
 }
 
@@ -1806,6 +1813,30 @@ static NSArray *BHT_inlineActionViewClassesForViewModel(NSArray *classes, id vie
 + (NSArray *)_t1_inlineActionViewClassesForViewModel:(id)arg1 options:(NSUInteger)arg2 displayType:(NSUInteger)arg3 account:(id)arg4 {
     NSArray *origClasses = %orig;
     return BHT_inlineActionViewClassesForViewModel(origClasses, arg1);
+}
+// The downvote (dislike) button shown on replies/comments is gated by this
+// method rather than being unconditionally present in the class list above.
+// The array filter alone misses it, so intercept the gate directly: forcing
+// NO prevents the button being built in every context (timeline and comments).
++ (BOOL)t1_shouldShowDownvoteButtonForViewModel:(id)arg1 options:(NSUInteger)arg2 anatomyFeatures:(id)arg3 displayType:(NSUInteger)arg4 account:(id)arg5 {
+    if ([BHTManager hideDownvoteButton]) {
+        return NO;
+    }
+    return %orig;
+}
+%end
+
+// The reply/comment downvote button is created unconditionally and its actual
+// display is driven by -visibility: the actions view lays out only buttons whose
+// visibility is non-zero and calls setHidden:YES on the rest. Filtering the class
+// list doesn't remove it from the hierarchy, so force its visibility to 0 — this
+// excludes it from layout (no gap) and gets it hidden like any collapsed action.
+%hook TTAStatusInlineDownvoteButton
+- (NSUInteger)visibility {
+    if ([BHTManager hideDownvoteButton]) {
+        return 0;
+    }
+    return %orig;
 }
 %end
 

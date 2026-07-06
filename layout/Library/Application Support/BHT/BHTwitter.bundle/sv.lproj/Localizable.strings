@@ -77,6 +77,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Dölj bokmärkesknapp";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Ta bort bokmärkesknappen från Tweets.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Dölj nedröstningsknapp";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Ta bort nedröstningsknappen från Tweets.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Inga varningar för känsligt innehåll";
 

@@ -72,6 +72,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Sembunyikan bookmark";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Hapus tombol bookmark dari Tweet.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Sembunyikan downvote";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Hapus tombol downvote dari Tweet.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Tanpa peringatan konten sensitif";
 

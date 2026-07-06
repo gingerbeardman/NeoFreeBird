@@ -59,6 +59,7 @@
 + (BOOL)alwaysFollowingPage;
 + (BOOL)stopHidingTabBar;
 + (BOOL)hideBookmarkButton;
++ (BOOL)hideDownvoteButton;
 + (BOOL)customVoice;
 + (BOOL)RestoreTweetLabels;
 + (BOOL)disableMediaTab;
