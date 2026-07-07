@@ -3945,116 +3945,41 @@ static BOOL BHColorTwitterIconEnabled(void) {
 
 %end
 
-// MARK: - Hide Grok Analyze Button (TTAStatusAuthorView)
-
-@interface TTAStatusAuthorView : UIView
-- (id)grokAnalyzeButton;
-@end
-
-%hook TTAStatusAuthorView
-
-- (id)grokAnalyzeButton {
-    UIView *button = %orig;
-    if (button && [BHTManager hideGrokAnalyze]) {
-        button.hidden = YES;
-    }
-    return button;
-}
-
-%end
-
-%hook _TtC24TwitterTweetAnatomySwift24GrokAnalyzeButtonManager
-
-+ (BOOL)shouldShowGrokAnalyzeButtonForAuthorViewWithViewModel:(id)viewModel account:(id)account options:(unsigned long long)options displayType:(long long)displayType {
+// MARK: - Hide Grok Analyze Button
+// The analyze button (timeline author view and post detail nav bar) is gated by a per-tweet
+// boolean the API returns via the includeGrokAnalysisButton request field. Both
+// shouldShowGrokAnalyzeButtonForAuthorView and shouldShowGrokAnalyzeButtonForPostDetailNavBar
+// ultimately return this flag, so reporting it as absent at the model level suppresses the
+// button on every surface without any view-level hiding or navigation-context guessing.
+%hook TFNTwitterCanonicalStatus
+- (BOOL)grokAnalysisButton {
     if ([BHTManager hideGrokAnalyze]) return NO;
     return %orig;
 }
-
 %end
 
-@interface T1ResizableHeaderView : UIView
-- (UIView *)grokXaiLogoButton;
-@end
-
-%hook T1ResizableHeaderView
-
-- (void)layoutSubviews {
-    %orig;
-    if (![BHTManager hideGrokAnalyze]) return;
-    UIView *grok = [self grokXaiLogoButton];
-    if (grok) {
-        grok.hidden = YES;
-        grok.userInteractionEnabled = NO;
-    }
+%hook TFSTwitterStatus
+- (BOOL)grokAnalysisButton {
+    if ([BHTManager hideGrokAnalyze]) return NO;
+    return %orig;
 }
-
 %end
 
-static NSArray *BHTRemoveGrokBarButtonItems(NSArray *items) {
-    if (!items.count || ![BHTManager hideGrokAnalyze]) return items;
-    NSMutableArray *filtered = nil;
-    for (UIBarButtonItem *item in items) {
-        NSString *label = [item.accessibilityLabel lowercaseString];
-        if ([label rangeOfString:@"grok"].location != NSNotFound) {
-            if (!filtered) filtered = [items mutableCopy];
-            [filtered removeObject:item];
-        }
-    }
-    return filtered ?: items;
-}
-
-%hook UINavigationItem
-
-- (void)setRightBarButtonItems:(NSArray<UIBarButtonItem *> *)items {
-    %orig(BHTRemoveGrokBarButtonItems(items));
-}
-
-- (void)setRightBarButtonItems:(NSArray<UIBarButtonItem *> *)items animated:(BOOL)animated {
-    %orig(BHTRemoveGrokBarButtonItems(items), animated);
-}
-
-%end
-
-// MARK: - Hide Grok Analyze & Subscribe Buttons on Detail View
+// MARK: - Hide Subscribe Button on Detail View
 
 // Minimal interface for TFNButton, used by UIControl hook and FollowButton logic
 @class TFNButton;
 
 %hook UIControl
-// Grok Analyze and Subscribe button
+// Subscribe button
 - (void)addTarget:(id)target action:(SEL)action forControlEvents:(UIControlEvents)controlEvents {
-    if (action == @selector(didTapGrokAnalyze)) {
-        if ([self isKindOfClass:NSClassFromString(@"TFNButton")] && [BHTManager hideGrokAnalyze]) {
-            self.hidden = YES;
-        }
-    } else if (action == @selector(_didTapSubscribe)) {
+    if (action == @selector(_didTapSubscribe)) {
         if ([self isKindOfClass:NSClassFromString(@"TFNButton")] && [BHTManager restoreFollowButton]) {
             self.alpha = 0.0;
             self.userInteractionEnabled = NO;
         }
     }
     %orig(target, action, controlEvents);
-}
-
-%end
-
-%hook TFNButton
-
-- (void)didMoveToWindow {
-    %orig;
-    UIButton *button = (UIButton *)self;
-    if (!button.window || ![BHTManager hideGrokAnalyze]) return;
-    @try {
-        if (button.accessibilityLabel.length != 0 || !button.showsMenuAsPrimaryAction) return;
-        for (UIView *ancestor = button.superview; ancestor; ancestor = ancestor.superview) {
-            if ([ancestor isKindOfClass:NSClassFromString(@"TFNNavigationBar")]) {
-                button.hidden = YES;
-                break;
-            }
-        }
-    } @catch (NSException *exception) {
-        NSLog(@"[BHTwitter] Exception in TFNButton didMoveToWindow: %@", exception);
-    }
 }
 
 %end
