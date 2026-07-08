@@ -504,8 +504,8 @@ static void BHT_maybeHandleHarvestWebView(__unsafe_unretained id webViewControll
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"hide_topics_to_follow"];
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"hide_who_to_follow"];
         [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"no_tab_bar_hiding"];
-				[[NSUserDefaults standardUserDefaults] setBool:true forKey:@"attestation_bypass_enabled"];
-
+        [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"attestation_bypass_enabled"];
+        [[NSUserDefaults standardUserDefaults] setBool:true forKey:@"restore_twitter_names"];
     }
     [BHTManager cleanCache];
     if ([BHTManager FLEX]) {

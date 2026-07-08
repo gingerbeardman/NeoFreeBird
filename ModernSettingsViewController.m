@@ -1839,7 +1839,7 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
 
 - (void)buildSettingsList {
     self.toggles = @[
-        @{@"key": @"restore_twitter_names", @"titleKey": @"RESTORE_TWITTER_NAMES_OPTION_TITLE", @"subtitleKey": @"RESTORE_TWITTER_NAMES_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle"},
+        @{@"key": @"restore_twitter_names", @"titleKey": @"RESTORE_TWITTER_NAMES_OPTION_TITLE", @"subtitleKey": @"RESTORE_TWITTER_NAMES_OPTION_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"},
         @{@"key": @"refresh_pill_label", @"titleKey": @"REFRESH_PILL_OPTION_TITLE", @"subtitleKey": @"REFRESH_PILL_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"},
         @{@"key": @"color_twitter_icon_in_top_bar", @"titleKey": @"COLOR_TWITTER_ICON_OPTION_TITLE", @"subtitleKey": @"COLOR_TWITTER_ICON_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"}
     ];
