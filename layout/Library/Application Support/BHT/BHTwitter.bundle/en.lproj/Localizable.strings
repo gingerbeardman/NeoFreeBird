@@ -392,14 +392,14 @@
 /*Refresh pill text*/
 "REFRESH_PILL_TEXT" = "Tweeted";
 
-"NOTIF_REPLACE_POST_WITH_TWEET_OPTION_TITLE" = "Post to Tweet replacer in notifications";
-"NOTIF_REPLACE_POST_WITH_TWEET_DETAIL_TITLE" = "Replaces 'Post' with 'Tweet' in the notifications pane. This affects *all* text in notifications, so if a Tweet contains the word 'post', it will be replaced too.";
-
 "COLOR_TWITTER_ICON_OPTION_TITLE" = "Color Twitter icon";
 "COLOR_TWITTER_ICON_DETAIL_TITLE" = "Applies the accent color to the Twitter icon in the top bar.";
 
 "REFRESH_PILL_OPTION_TITLE" = "Add 'Tweeted' to refresh pill";
 "REFRESH_PILL_DETAIL_TITLE" = "Adds back the 'Tweeted' label to the refresh pill when someone Tweets. This may (incorrectly) appear in some other areas too.";
+
+"RESTORE_TWITTER_NAMES_OPTION_TITLE" = "Restore Twitter terminology";
+"RESTORE_TWITTER_NAMES_OPTION_DETAIL_TITLE" = "Replaces 'X' with 'Twitter', 'Post' with 'Tweet', 'Repost' with 'Retweet' and so on throughout the app's interface.";
 
 /*Presets*/
 

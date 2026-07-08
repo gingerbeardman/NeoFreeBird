@@ -400,6 +400,9 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
         self.subtitleLabel.numberOfLines = 0;
         self.subtitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
         [self.contentView addSubview:self.subtitleLabel];
+        // Our own settings text must not be rewritten by the terminology restorer.
+        [BHTManager markViewSkipRename:self.titleLabel];
+        [BHTManager markViewSkipRename:self.subtitleLabel];
         self.toggleSwitch = [UISwitch new];
         self.toggleSwitch.translatesAutoresizingMaskIntoConstraints = NO;
         [self.contentView addSubview:self.toggleSwitch];
@@ -1836,7 +1839,7 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
 
 - (void)buildSettingsList {
     self.toggles = @[
-        @{@"key": @"notif_replace_post_with_tweet", @"titleKey": @"NOTIF_REPLACE_POST_WITH_TWEET_OPTION_TITLE", @"subtitleKey": @"NOTIF_REPLACE_POST_WITH_TWEET_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"},
+        @{@"key": @"restore_twitter_names", @"titleKey": @"RESTORE_TWITTER_NAMES_OPTION_TITLE", @"subtitleKey": @"RESTORE_TWITTER_NAMES_OPTION_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"},
         @{@"key": @"refresh_pill_label", @"titleKey": @"REFRESH_PILL_OPTION_TITLE", @"subtitleKey": @"REFRESH_PILL_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"},
         @{@"key": @"color_twitter_icon_in_top_bar", @"titleKey": @"COLOR_TWITTER_ICON_OPTION_TITLE", @"subtitleKey": @"COLOR_TWITTER_ICON_DETAIL_TITLE", @"default": @YES, @"type": @"toggle"}
     ];
@@ -1984,7 +1987,7 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
     self.toggles = @[
         @{ @"key": @"restore_tweet_labels", @"titleKey": @"ENABLE_TWEET_LABELS_OPTION_TITLE", @"subtitleKey": @"ENABLE_TWEET_LABELS_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle" },
         @{ @"key": @"attestation_bypass_enabled", @"titleKey": @"ATTESTATION_BYPASS_OPTION_TITLE", @"subtitleKey": @"ATTESTATION_BYPASS_OPTION_DETAIL_TITLE", @"default": @YES, @"type": @"toggle" },
-        @{ @"key": @"reply_in_webview", @"titleKey": @"REPLY_IN_WEBVIEW_OPTION_TITLE", @"subtitleKey": @"REPLY_IN_WEBVIEW_OPTION_DETAIL_TITLE", @"default": @YES, @"type": @"toggle" }
+        @{ @"key": @"reply_in_webview", @"titleKey": @"REPLY_IN_WEBVIEW_OPTION_TITLE", @"subtitleKey": @"REPLY_IN_WEBVIEW_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle" }
     ];
     [self updateVisibleToggles];
     [self.tableView reloadData];
