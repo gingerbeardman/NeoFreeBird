@@ -235,8 +235,13 @@ static NSString *const kJSInstJS =
 
     self.userField = [self field:@"Username, email or phone" secure:NO];
     self.userField.keyboardType = UIKeyboardTypeEmailAddress;
+    // Tag the fields so iOS Password AutoFill recognises the form and offers
+    // saved logins / the Passwords key in the QuickType bar (the native
+    // equivalent of autocomplete=username / current-password on a web form).
+    self.userField.textContentType = UITextContentTypeUsername;
 
     self.passField = [self field:@"Password" secure:YES];
+    self.passField.textContentType = UITextContentTypePassword;
 
     self.actionButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [self.actionButton setTitle:@"Log in" forState:UIControlStateNormal];
