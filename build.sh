@@ -55,6 +55,10 @@ CYAN_BIN=""; if command -v cyan >/dev/null 2>&1; then CYAN_BIN="cyan"; fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/branding/ipa-branding.sh"
 
+# Prebuilt "Open in Twitter" Safari web extension (vendored from NeoFreeBird/app).
+# cyan drops any .appex passed to -f/-uwf into the app's PlugIns/ folder.
+SAFARI_EXT="$SCRIPT_DIR/assets/OpenTwitterSafariExtension.appex"
+
 MODE=""
 TWITTER_BRANDING=0
 IMAGE_PACK=""
@@ -141,7 +145,8 @@ case "$MODE" in
       if command -v cyan >/dev/null 2>&1; then
         cyan -i packages/com.atebits.Tweetie2.ipa -o packages/NeoFreeBird-sideloaded --ignore-encrypted \
           -uwf .theos/obj/debug/zxPluginsInject.dylib .theos/obj/debug/libbhFLEX.dylib \
-          .theos/obj/debug/BHTwitter.dylib layout/Library/Application\ Support/BHT/BHTwitter.bundle
+          .theos/obj/debug/BHTwitter.dylib layout/Library/Application\ Support/BHT/BHTwitter.bundle \
+          "$SAFARI_EXT"
         apply_ipa_branding "$(ls -t packages/*.ipa 2>/dev/null | head -n1)"
       else
         say "Skipping cyan step because it is not installed."
@@ -169,7 +174,8 @@ case "$MODE" in
       say "Merging NeoFreeBird to provided Twitter IPA."
       if command -v cyan >/dev/null 2>&1; then
         cyan -i packages/com.atebits.Tweetie2.ipa -o packages/NeoFreeBird-trollstore.tipa --ignore-encrypted \
-          -uwf .theos/obj/debug/BHTwitter.dylib .theos/obj/debug/libbhFLEX.dylib layout/Library/Application\ Support/BHT/BHTwitter.bundle
+          -uwf .theos/obj/debug/BHTwitter.dylib .theos/obj/debug/libbhFLEX.dylib layout/Library/Application\ Support/BHT/BHTwitter.bundle \
+          "$SAFARI_EXT"
         apply_ipa_branding "$(ls -t packages/*.tipa 2>/dev/null | head -n1)"
       else
         say "Skipping cyan step because it is not installed."
