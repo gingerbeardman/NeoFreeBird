@@ -274,6 +274,9 @@
 + (BOOL)hideBookmarkButton {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_bookmark_button"];
 }
++ (BOOL)hideDownvoteButton {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_downvote_button"];
+}
 + (BOOL)customVoice {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"custom_voice_upload"];
 }

@@ -72,6 +72,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Masquer les favoris";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Supprime le bouton de favoris.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Masquer les votes négatifs";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Supprime le bouton de vote négatif des Tweets.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Pas d'avertissements de contenu sensible";
 

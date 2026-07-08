@@ -125,6 +125,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Hide bookmarks";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Remove the bookmark button from Tweets.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Hide downvotes";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Remove the downvote button from Tweets.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "No sensitive content warnings";
 

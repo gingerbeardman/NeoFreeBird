@@ -72,6 +72,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Ocultar marcadores";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Quita el botón de marcadores de los Tweets.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Ocultar votos negativos";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Quita el botón de voto negativo de los Tweets.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Sin advertencias de contenido sensible";
 

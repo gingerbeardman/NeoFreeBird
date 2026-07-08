@@ -72,6 +72,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Yer imlerini gizle";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Tweet’lerden yer imi butonunu kaldır.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Olumsuz oyları gizle";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Tweet’lerden olumsuz oy butonunu kaldır.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Hassas içerik uyarısı yok";
 

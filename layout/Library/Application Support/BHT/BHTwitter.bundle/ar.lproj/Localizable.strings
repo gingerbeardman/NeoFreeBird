@@ -73,6 +73,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "إخفاء الإشارات المرجعية";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "إزالة زر الإشارة المرجعية.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "إخفاء التصويت السلبي";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "إزالة زر التصويت السلبي من التغريدات.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "بدون تحذيرات محتوى حساس";
 

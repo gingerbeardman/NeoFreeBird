@@ -72,6 +72,8 @@
 
 "HIDE_MARKBOOK_BUTTON_OPTION_TITLE" = "Sakrij oznake";
 "HIDE_MARKBOOK_BUTTON_OPTION_DETAIL_TITLE" = "Ukloni gumb za spremanje tweetova.";
+"HIDE_DOWNVOTE_BUTTON_OPTION_TITLE" = "Sakrij negativne glasove";
+"HIDE_DOWNVOTE_BUTTON_OPTION_DETAIL_TITLE" = "Ukloni gumb za negativan glas iz tweetova.";
 
 "DISABLE_SENSITIVE_TWEET_WARNINGS_OPTION_TITLE" = "Bez upozorenja na osjetljiv sadržaj";
 
