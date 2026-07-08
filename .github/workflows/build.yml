@@ -27,6 +27,16 @@ on:
           - sideloaded
           - trollstore
           - rootless
+      twitter_branding:
+        description: "Set app name to Twitter (IPA builds only)"
+        default: true
+        required: false
+        type: boolean
+      image_pack_url:
+        description: "Override app icons (.ZIP) (IPA builds only)"
+        default: "https://files.catbox.moe/umegw5.zip"
+        required: false
+        type: string
       commit_id:
         description: "(Optional) Commit ID to build at"
         default: ""
@@ -122,11 +132,20 @@ jobs:
         env:
           IPA_URL: ${{ inputs.decrypted_ipa_url }}
 
+      - name: Prepare Image Pack
+        if: inputs.image_pack_url != '' && (inputs.deploy_format == 'sideloaded' || inputs.deploy_format == 'trollstore')
+        run: |
+          wget "$IMAGE_URL" --no-verbose -O main/image-pack.zip
+        env:
+          IMAGE_URL: ${{ inputs.image_pack_url }}
+
       - name: Build Package
         run: |
           cd ${{ github.workspace }}/main
           sed -i '' "s/^TARGET.*$/TARGET := iphone:clang:${{ inputs.sdk_version }}:${{ inputs.target_version }}/" Makefile
-          ./build.sh --${{ inputs.deploy_format }}
+          IMAGE_FLAG=""
+          if [ -f image-pack.zip ]; then IMAGE_FLAG="--image-pack image-pack.zip"; fi
+          ./build.sh --${{ inputs.deploy_format }}${{ inputs.twitter_branding && ' --twitter-branding' || '' }} $IMAGE_FLAG
         env:
           THEOS: ${{ github.workspace }}/theos
 
