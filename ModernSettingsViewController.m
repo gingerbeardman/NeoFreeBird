@@ -1984,7 +1984,7 @@ static UIFont *TwitterChirpFont(TwitterFontStyle style) {
     self.toggles = @[
         @{ @"key": @"restore_tweet_labels", @"titleKey": @"ENABLE_TWEET_LABELS_OPTION_TITLE", @"subtitleKey": @"ENABLE_TWEET_LABELS_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle" },
         @{ @"key": @"attestation_bypass_enabled", @"titleKey": @"ATTESTATION_BYPASS_OPTION_TITLE", @"subtitleKey": @"ATTESTATION_BYPASS_OPTION_DETAIL_TITLE", @"default": @YES, @"type": @"toggle" },
-        @{ @"key": @"reply_in_webview", @"titleKey": @"REPLY_IN_WEBVIEW_OPTION_TITLE", @"subtitleKey": @"REPLY_IN_WEBVIEW_OPTION_DETAIL_TITLE", @"default": @YES, @"type": @"toggle" }
+        @{ @"key": @"reply_in_webview", @"titleKey": @"REPLY_IN_WEBVIEW_OPTION_TITLE", @"subtitleKey": @"REPLY_IN_WEBVIEW_OPTION_DETAIL_TITLE", @"default": @NO, @"type": @"toggle" }
     ];
     [self updateVisibleToggles];
     [self.tableView reloadData];
