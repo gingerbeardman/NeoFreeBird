@@ -4,3 +4,6 @@
 [submodule "zxPluginsInject"]
 	path = zxPluginsInject
 	url = https://github.com/asdfzxcvbn/zxPluginsInject
+[submodule "classic-branding"]
+	path = classic-branding
+	url = https://github.com/gingerbeardman/twitter-classic-branding
