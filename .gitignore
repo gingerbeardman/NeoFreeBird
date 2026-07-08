@@ -9,3 +9,4 @@ packages/
 
 *.md
 !README.md
+!CLAUDE.md
