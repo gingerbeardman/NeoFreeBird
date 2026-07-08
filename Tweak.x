@@ -4566,17 +4566,172 @@ objc_setAssociatedObject(footerView,
 
 %end
 
-// Helper for the "Replace 'post' with 'Tweet' in notifications" setting
-static BOOL BHNotifReplacePostWithTweetEnabled(void) {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+// MARK: Restore Twitter terminology, controlled by "restore_twitter_names"
+// Twitter resolves its UI strings entirely in Swift (the XLocalized module), so they
+// never pass through NSBundle/CFBundle where they could be intercepted. Instead we
+// rewrite the classic wording ("X" -> "Twitter", "Post" -> "Tweet", "Repost" ->
+// "Retweet"…) as text is set on UIKit chrome (labels and buttons). The tweet-body
+// renderer (TFNAttributedTextView) is deliberately left untouched so people's actual
+// posts aren't rewritten. Word matches only; leading capitalisation (and all-caps) is
+// preserved.
 
-    // Fall back to BrandingSettings default (@YES) if the key is missing
-    if ([defaults objectForKey:@"notif_replace_post_with_tweet"] == nil) {
-        return YES;
+// Maps a lowercase inflection of "post"/"repost" to its Twitter equivalent.
+static NSDictionary<NSString *, NSString *> *BHTwitterWordMap(void) {
+    static NSDictionary *map = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        map = @{
+            @"repost": @"retweet", @"reposts": @"retweets",
+            @"reposted": @"retweeted", @"reposting": @"retweeting",
+            @"post": @"tweet", @"posts": @"tweets",
+            @"posted": @"tweeted", @"posting": @"tweeting",
+						@"premium": @"blue"
+        };
+    });
+    return map;
+}
+
+// Applies the capitalisation style of `token` (all-caps or leading-capital) to `base`.
+static NSString *BHMatchCapitalisation(NSString *token, NSString *base) {
+    if (token.length == 0 || base.length == 0) {
+        return base;
     }
 
-    return [defaults boolForKey:@"notif_replace_post_with_tweet"];
+    NSString *lower = token.lowercaseString;
+    if (token.length > 1 && [token isEqualToString:token.uppercaseString] && ![token isEqualToString:lower]) {
+        return base.uppercaseString;
+    }
+
+    unichar first = [token characterAtIndex:0];
+    if ([[NSCharacterSet uppercaseLetterCharacterSet] characterIsMember:first]) {
+        return [base stringByReplacingCharactersInRange:NSMakeRange(0, 1)
+                                             withString:[base substringToIndex:1].uppercaseString];
+    }
+    return base;
 }
+
+// Returns the ordered list of edits (@"range" -> NSValue, @"repl" -> NSString) to apply
+// to `input`, sorted last-match-first so applying them never invalidates a later range.
+// Returns nil when there is nothing to change.
+static NSArray<NSDictionary *> *BHRenameEdits(NSString *input) {
+    if (input.length == 0) {
+        return nil;
+    }
+
+    // Cheap prefilter: only run the regexes when a candidate substring is present.
+    BOOL maybePost = [input rangeOfString:@"ost" options:NSCaseInsensitiveSearch].location != NSNotFound;
+    BOOL maybeX = [input rangeOfString:@"X"].location != NSNotFound;
+    if (!maybePost && !maybeX) {
+        return nil;
+    }
+
+    static NSRegularExpression *postRegex = nil;
+    static NSRegularExpression *xRegex = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        postRegex = [NSRegularExpression regularExpressionWithPattern:@"\\b(reposts|reposted|reposting|repost|posts|posted|posting|post)\\b"
+                                                              options:NSRegularExpressionCaseInsensitive
+                                                                error:nil];
+        // Case-sensitive: only a standalone uppercase "X" becomes "Twitter".
+        xRegex = [NSRegularExpression regularExpressionWithPattern:@"\\bX\\b" options:0 error:nil];
+    });
+
+    NSRange full = NSMakeRange(0, input.length);
+    NSMutableArray<NSDictionary *> *edits = [NSMutableArray array];
+
+    if (maybeX) {
+        for (NSTextCheckingResult *match in [xRegex matchesInString:input options:0 range:full]) {
+            [edits addObject:@{@"range": [NSValue valueWithRange:match.range], @"repl": @"Twitter"}];
+        }
+    }
+
+    if (maybePost) {
+        NSDictionary *wordMap = BHTwitterWordMap();
+        for (NSTextCheckingResult *match in [postRegex matchesInString:input options:0 range:full]) {
+            NSString *token = [input substringWithRange:match.range];
+            NSString *base = wordMap[token.lowercaseString];
+            if (base) {
+                [edits addObject:@{@"range": [NSValue valueWithRange:match.range],
+                                   @"repl": BHMatchCapitalisation(token, base)}];
+            }
+        }
+    }
+
+    if (edits.count == 0) {
+        return nil;
+    }
+
+    [edits sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
+        NSUInteger la = [a[@"range"] rangeValue].location;
+        NSUInteger lb = [b[@"range"] rangeValue].location;
+        if (la > lb) return NSOrderedAscending;
+        if (la < lb) return NSOrderedDescending;
+        return NSOrderedSame;
+    }];
+    return edits;
+}
+
+static NSString *BHRestoreTwitterTerminology(NSString *input) {
+    // Memoise: labels re-set the same handful of strings over and over.
+    static NSCache<NSString *, NSString *> *cache = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{ cache = [NSCache new]; });
+
+    NSString *cached = [cache objectForKey:input];
+    if (cached) {
+        return cached;
+    }
+
+    NSArray<NSDictionary *> *edits = BHRenameEdits(input);
+    NSString *output = input;
+    if (edits) {
+        NSMutableString *result = [input mutableCopy];
+        for (NSDictionary *edit in edits) {
+            [result replaceCharactersInRange:[edit[@"range"] rangeValue] withString:edit[@"repl"]];
+        }
+        output = [result copy];
+    }
+
+    [cache setObject:output forKey:input];
+    return output;
+}
+
+static NSAttributedString *BHRestoreTwitterAttributed(NSAttributedString *input) {
+    NSArray<NSDictionary *> *edits = BHRenameEdits(input.string);
+    if (!edits) {
+        return input;
+    }
+
+    NSMutableAttributedString *result = [input mutableCopy];
+    for (NSDictionary *edit in edits) {
+        NSRange range = [edit[@"range"] rangeValue];
+        NSDictionary *attrs = [result attributesAtIndex:range.location effectiveRange:NULL];
+        NSAttributedString *piece = [[NSAttributedString alloc] initWithString:edit[@"repl"] attributes:attrs];
+        [result replaceCharactersInRange:range withAttributedString:piece];
+    }
+    return result;
+}
+
+%hook UILabel
+- (void)setAttributedText:(NSAttributedString *)attributedText {
+    if (attributedText.length > 0 && [BHTManager restoreTwitterNames] &&
+        ![self isKindOfClass:%c(TFNAttributedTextView)] && ![BHTManager viewSkipsRename:self]) {
+        %orig(BHRestoreTwitterAttributed(attributedText));
+        return;
+    }
+    %orig;
+}
+%end
+
+%hook UIButton
+- (void)setTitle:(NSString *)title forState:(UIControlState)state {
+    if (title.length > 0 && [BHTManager restoreTwitterNames] && ![BHTManager viewSkipsRename:self]) {
+        %orig(BHRestoreTwitterTerminology(title), state);
+        return;
+    }
+    %orig;
+}
+%end
 
 %hook TFNAttributedTextView
 - (void)setTextModel:(TFNAttributedTextModel *)model {
@@ -4622,124 +4777,19 @@ static BOOL BHNotifReplacePostWithTweetEnabled(void) {
         }
     }
 
-    // --- Notification text replacements ---
-    BOOL isNotificationView = NO;
-    {
-        UIView *view = self;
-        while (view && !isNotificationView) {
-            NSString *className = NSStringFromClass([view class]);
-            if ([className containsString:@"Notification"] ||
-                [className containsString:@"T1NotificationsTimeline"]) {
-                isNotificationView = YES;
-            }
-            view = view.superview;
-        }
-    }
-
-    if (isNotificationView && BHNotifReplacePostWithTweetEnabled()) {
-        if (!newString) {
-            newString = [[NSMutableAttributedString alloc] initWithAttributedString:model.attributedString];
-        }
-
-        NSArray *replacements = @[
-            // Full phrase replacements first
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_reposted_your_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_retweeted_your_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_reposted_your_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_retweeted_your_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Reposted_your_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Retweeted_your_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Reposted_your_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Retweeted_your_Tweet_new"]},
-
-            // Standalone "post" -> "Tweet"
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_your_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_your_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_your_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_your_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_a_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_a_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_a_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_a_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_new_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_new_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_new_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_new_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_New_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_New_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_New_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_New_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_recent_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_recent_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_recent_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_recent_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Recent_post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Recent_tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Recent_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Recent_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_pinned_Post_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_pinned_Tweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_your_Posts_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_your_Tweets_new"]},
-
-            // Standalone "reposted" -> "retweeted"
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_reposted_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_retweeted_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Reposted_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Retweeted_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_repost_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_retweet_new"]},
-
-            @{@"old": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Repost_old"],
-              @"new": [[BHTBundle sharedBundle] localizedStringForKey:@"notif_Retweet_new"]}
-        ];
-
-        for (NSDictionary *rep in replacements) {
-            NSString *oldStr = rep[@"old"];
-            NSString *newStr = rep[@"new"];
-            if (oldStr.length == 0 || newStr.length == 0) {
-                continue;
-            }
-
-            NSRange searchRange = [[newString string] rangeOfString:oldStr];
-            while (searchRange.location != NSNotFound) {
-                NSRange runRange = {0, 0};
-                NSDictionary *attrs = [newString attributesAtIndex:searchRange.location
-                                                    effectiveRange:&runRange];
-
-                NSAttributedString *replacement =
-                    [[NSAttributedString alloc] initWithString:newStr attributes:attrs];
-
-                [newString replaceCharactersInRange:searchRange withAttributedString:replacement];
-                modified = YES;
-                textChanged = YES;
-
-                NSUInteger nextLocation = searchRange.location + replacement.length;
-                if (nextLocation >= newString.length) {
-                    break;
-                }
-
-                NSRange remainder = NSMakeRange(nextLocation, newString.length - nextLocation);
-                searchRange = [[newString string] rangeOfString:oldStr options:0 range:remainder];
-            }
+    // --- Restore Twitter terminology ---
+    // TFNAttributedTextView renders interface chrome (notification headers, footers,
+    // timestamps, counts…). Tweet bodies use T1StatusBodyTextView /
+    // TTAStatusBodySelectableContentTextView, so they never reach this hook and are
+    // left untouched. The rewrite is driven by the shared word-boundary transform, so
+    // it changes the actual rendered text rather than a hardcoded list of phrases.
+    if ([BHTManager restoreTwitterNames]) {
+        NSAttributedString *source = newString ?: model.attributedString;
+        NSAttributedString *renamed = BHRestoreTwitterAttributed(source);
+        if (renamed != source) {
+            newString = [renamed mutableCopy];
+            modified = YES;
+            textChanged = YES;
         }
     }
 
@@ -6013,6 +6063,12 @@ static UIView *findPlayerControlsInHierarchy(UIView *startView) {
 %hook UILabel
 
 - (void)setText:(NSString *)text {
+    // Restore classic Twitter terminology on interface labels (not tweet bodies).
+    if (text.length > 0 && [BHTManager restoreTwitterNames] &&
+        ![self isKindOfClass:%c(TFNAttributedTextView)] && ![BHTManager viewSkipsRename:self]) {
+        text = BHRestoreTwitterTerminology(text);
+    }
+
     %orig(text);
 
     // Skip processing if feature is disabled

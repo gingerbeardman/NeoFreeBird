@@ -68,6 +68,9 @@
 + (BOOL)disableHighlights;
 
 + (BOOL)hideGrokAnalyze;
++ (BOOL)restoreTwitterNames;
++ (void)markViewSkipRename:(UIView *)view;
++ (BOOL)viewSkipsRename:(UIView *)view;
 + (BOOL)hideFollowButton;
 + (BOOL)restoreFollowButton;
 + (BOOL)squareAvatars;

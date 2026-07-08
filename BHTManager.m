@@ -302,6 +302,19 @@
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_grok_analyze"];
 }
 
++ (BOOL)restoreTwitterNames {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"restore_twitter_names"];
+}
+
+// Marks a view (our own settings labels) so the terminology rewriter leaves it alone.
+static const void *BHTSkipRenameKey = &BHTSkipRenameKey;
++ (void)markViewSkipRename:(UIView *)view {
+    objc_setAssociatedObject(view, BHTSkipRenameKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
++ (BOOL)viewSkipsRename:(UIView *)view {
+    return [objc_getAssociatedObject(view, BHTSkipRenameKey) boolValue];
+}
+
 + (BOOL)hideFollowButton {
     return [[NSUserDefaults standardUserDefaults] boolForKey:@"hide_follow_button"];
 }
