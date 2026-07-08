@@ -4997,13 +4997,10 @@ static BOOL findAndHideButtonWithAccessibilityId(UIView *viewToSearch, NSString 
     }
 }
 
-// This hook makes the control ALWAYS REPORT its variant as 32
-- (NSUInteger)variant {
-    if ([BHTManager restoreFollowButton]) {
-        return 32;
-    }
-    return %orig;
-}
+// NOTE: We intentionally do NOT override -variant. Forcing it to a constant 32
+// made every TUIFollowControl report "Follow" regardless of the real account
+// relationship, which hid the Follow button on every tweet (NeoFreeBird#2).
+// The setVariant: remap above already converts Subscribe (1) -> Follow (32).
 
 %end
 
@@ -6262,13 +6259,24 @@ static BOOL BHPillLabelOverrideEnabled(void) {
     return [defaults boolForKey:@"refresh_pill_label"];
 }
 
+// Only the "new posts/Tweets" refresh pill should be relabelled. TFNPillControl
+// is used for other pills too ("Back to top", counts, …); the old code forced
+// every pill's text to "Tweeted" and corrupted their reads. Gate on the pill's
+// own text mentioning posts/tweets.
+static BOOL BHPillTextIsNewContent(id text) {
+    if (![text isKindOfClass:[NSString class]]) return NO;
+    NSString *s = [(NSString *)text lowercaseString];
+    return [s containsString:@"post"] || [s containsString:@"tweet"];
+}
+
 // MARK: Change Pill text, controlled by "refresh_pill_label"
 %hook TFNPillControl
 
 - (id)text {
-    if (!BHPillLabelOverrideEnabled()) {
-        // Setting is off, keep original behavior
-        return %orig;
+    id origText = %orig;
+    if (!BHPillLabelOverrideEnabled() || !BHPillTextIsNewContent(origText)) {
+        // Setting off, or not the new-content pill: keep original behavior
+        return origText;
     }
 
     NSString *localizedText = [[BHTBundle sharedBundle] localizedStringForKey:@"REFRESH_PILL_TEXT"];
@@ -6277,8 +6285,8 @@ static BOOL BHPillLabelOverrideEnabled(void) {
 }
 
 - (void)setText:(id)arg1 {
-    if (!BHPillLabelOverrideEnabled()) {
-        // Setting is off, pass through original argument
+    if (!BHPillLabelOverrideEnabled() || !BHPillTextIsNewContent(arg1)) {
+        // Setting off, or not the new-content pill: pass through original argument
         return %orig(arg1);
     }
 
